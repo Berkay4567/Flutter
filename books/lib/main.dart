@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_search_bar/easy_search_bar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,16 +16,27 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+@override
+void search() {}
+
 class _MyAppState extends State<MyApp> {
   List<dynamic> books = [];
+  List<dynamic> booksSearch = [];
+  String searchValue = '';
 
   @override
   Widget build(BuildContext context) {
+    fetchBooks();
+    List<bool> _isFavorited = List.filled(books.length, false);
     return MaterialApp(
         home: Scaffold(
-      appBar: AppBar(
-        title: const Text('Kütüphane'),
-        centerTitle: true,
+      appBar: EasySearchBar(
+        title: const Text('Arama'),
+        onSearch: (value) {
+          setState(() {
+            searchValue = value;
+          });
+        },
       ),
       body: ListView.separated(
           separatorBuilder: (context, index) => Divider(
@@ -31,11 +44,13 @@ class _MyAppState extends State<MyApp> {
               ),
           itemCount: books.length,
           itemBuilder: (context, index) {
+
             final book = books[index];
             final titles = book['volumeInfo']['title'];
             final descriptions = book['volumeInfo']['description'];
             final profileImage = book['volumeInfo']['imageLinks']['thumbnail'];
-            return ListTile(
+            if (searchValue.isEmpty) {
+              return ListTile(
                 leading: SizedBox(
                   width: 50,
                   child: CachedNetworkImage(
@@ -47,6 +62,7 @@ class _MyAppState extends State<MyApp> {
                         const Icon(Icons.error),
                   ),
                 ),
+
                 title: Text(
                   titles,
                   style: TextStyle(
@@ -55,22 +71,6 @@ class _MyAppState extends State<MyApp> {
                     color: Color.fromARGB(255, 194, 0, 0),
                   ),
                 ),
-                // onTap:(){print(book['volumeInfo']['imageLinks']['thumbnail']);},
-                onTap: () {
-                  print(book['volumeInfo']['imageLinks']['thumbnail']);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NewScreen(book : books[index]),
-                    ),
-                  );
-                },
-                //  onTap: () {
-                //    Navigator.push(
-                //     context,
-                //      MaterialPageRoute(builder: (context) => YourNewPage(name:data[index]["name"],image:data[index]["image"]),),
-                //    );
-                //  },
                 subtitle: Text(
                   descriptions,
                   maxLines: 4,
@@ -80,9 +80,64 @@ class _MyAppState extends State<MyApp> {
                     fontWeight: FontWeight.w500,
                     color: Color.fromARGB(255, 0, 0, 0),
                   ),
-                ));
+                ),
+                trailing:               Column(
+                children: [
+                    InkWell(
+                    onTap: () {
+                                   Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NewScreen(book: books[index]),
+                      ),
+                    );
+                    },
+                    child: Icon(Icons.arrow_right),
+                  ),
+                  SizedBox(
+                    height: 5,
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _isFavorited[index] = !_isFavorited[index]);
+                    },
+                    child: Icon(Icons.favorite),
+                  ),
+                ],
+              ),
+                
+              );
+            } else if (titles.toLowerCase().contains(searchValue)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                setState(() {});
+              });
+
+              return ListTile(
+                  title: Text(
+                    titles,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: Color.fromARGB(255, 194, 0, 0),
+                    ),
+                  ),
+                  subtitle: Text(
+                    descriptions,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color.fromARGB(255, 0, 0, 0),
+                    ),
+                    
+                  ),
+                  
+                  );
+            } else {
+              return Container();
+            }
           }),
-      floatingActionButton: FloatingActionButton(onPressed: fetchBooks),
     ));
   }
 
@@ -103,25 +158,31 @@ class NewScreen extends StatelessWidget {
   @override
   const NewScreen({super.key, required this.book});
   final dynamic book;
-  
+
   Widget build(BuildContext context) {
-    print("bbbbbbbbbbbbbbbbbbbbbbbbbb");
-    print(book['id']);
-    // final id=book['id'];
-    // final sss = book['volumeInfo']['title'];
     return Scaffold(
-      
-      appBar: AppBar(title: Text(book['volumeInfo']['title']                  ,
-      style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color.fromARGB(255, 187, 6, 6),
-                  ),)),
-    body: new Center(
-      child: new Text(
-        book['volumeInfo']['description']
+      appBar: AppBar(
+          title: Text(
+        book['volumeInfo']['title'],
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Color.fromARGB(255, 187, 6, 6),
+        ),
+      )),
+      body: Padding(
+        padding: EdgeInsets.only(left: 20.0, right: 20.0, top: 8.0),
+        child: new Text(
+          book['volumeInfo']['description'],
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: Color.fromRGBO(0, 0, 0, 1),
+            letterSpacing: 0.5,
+            
+          ),
+        ),
       ),
-    ),
     );
   }
 }
